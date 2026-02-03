@@ -1,646 +1,300 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>COO Dashboard - Home</title>
-
-  <!-- config.js should define: const API_URL = '/api/gas'; -->
-  <script src="/config.js"></script>
-
-  <style>
-    :root{
-      --bg1:#f6f9ff;
-      --bg2:#eef5ff;
-      --card:#ffffff;
-      --text:#0b1220;
-      --muted:#546173;
-      --line:rgba(20,30,50,.10);
-      --shadow:0 10px 30px rgba(20,30,50,.08);
-      --shadow2:0 4px 14px rgba(20,30,50,.08);
-      --btn:#f2f5fa;
-      --btnText:#1f2a3a;
-      --primary:#2563eb;
-      --danger:#b91c1c;
-      --radius:18px;
-    }
-    *{ box-sizing:border-box; }
-    html,body{ height:100%; }
-    body{
-      margin:0;
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
-      color:var(--text);
-      background: radial-gradient(1200px 700px at 20% 0%, var(--bg2), var(--bg1) 55%, #fff 100%);
-    }
-
-    .topbar{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:16px;
-      padding:18px 22px;
-    }
-    .brand{
-      display:flex;
-      align-items:center;
-      gap:10px;
-      font-weight:800;
-      letter-spacing:.2px;
-    }
-    .bolt{
-      font-size:18px;
-      line-height:1;
-    }
-    .right{
-      display:flex;
-      align-items:center;
-      gap:10px;
-    }
-    .pill{
-      border:1px solid var(--line);
-      background:rgba(255,255,255,.75);
-      backdrop-filter: blur(8px);
-      border-radius:999px;
-      padding:6px 10px;
-      font-size:12px;
-      color:var(--muted);
-    }
-    .btn{
-      border:1px solid var(--line);
-      background:var(--btn);
-      color:var(--btnText);
-      border-radius:12px;
-      padding:8px 12px;
-      font-weight:600;
-      cursor:pointer;
-      box-shadow: var(--shadow2);
-    }
-    .btn:active{ transform: translateY(1px); }
-    .btn.link{
-      background:transparent;
-      box-shadow:none;
-    }
-    .btn.danger{
-      border-color: rgba(185,28,28,.25);
-      color: var(--danger);
-      background: rgba(185,28,28,.06);
-    }
-
-    .wrap{
-      max-width:1100px;
-      margin:0 auto;
-      padding: 6px 18px 60px;
-    }
-
-    .hero{
-      width:min(860px, 100%);
-      margin: 30px auto 10px;
-      background: rgba(255,255,255,.78);
-      backdrop-filter: blur(10px);
-      border:1px solid var(--line);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      padding: 22px 22px 18px;
-    }
-    .hero h1{
-      margin:0 0 6px;
-      font-size:42px;
-      letter-spacing:-.6px;
-    }
-    .hero p{
-      margin:0;
-      color:var(--muted);
-      font-size:14px;
-    }
-
-    .crumbs{
-      width:min(860px, 100%);
-      margin: 14px auto 0;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      color:var(--muted);
-      font-size:13px;
-    }
-    .crumbLeft{
-      display:flex;
-      align-items:center;
-      gap:8px;
-      flex-wrap:wrap;
-    }
-    .crumbSep{ opacity:.55; }
-
-    .panel{
-      width:min(980px, 100%);
-      margin: 18px auto 0;
-    }
-
-    .loading{
-      display:block;
-      color:var(--muted);
-      font-size:13px;
-      padding: 12px 4px;
-    }
-
-    .error{
-      margin-top:10px;
-      border:1px solid rgba(185,28,28,.25);
-      background: rgba(185,28,28,.06);
-      border-radius: 14px;
-      padding: 12px 14px;
-      color: var(--danger);
-      font-size:13px;
-      display:none;
-    }
-
-    .grid{
-      display:grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap:14px;
-      margin-top:10px;
-    }
-    @media (max-width: 820px){
-      .grid{ grid-template-columns: 1fr; }
-      .hero h1{ font-size:34px; }
-    }
-
-    .card{
-      background: rgba(255,255,255,.84);
-      border:1px solid var(--line);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow2);
-      padding: 16px 16px 14px;
-      cursor:pointer;
-      transition: transform .08s ease, box-shadow .08s ease;
-    }
-    .card:hover{
-      transform: translateY(-1px);
-      box-shadow: var(--shadow);
-    }
-    .cardTop{
-      display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
-      gap:10px;
-    }
-    .cardTitle{
-      font-size:16px;
-      font-weight:800;
-      margin:0;
-    }
-    .cardMeta{
-      display:flex;
-      align-items:center;
-      gap:8px;
-      color:var(--muted);
-      font-size:12px;
-      white-space:nowrap;
-    }
-    .badge{
-      border:1px solid var(--line);
-      background: rgba(255,255,255,.8);
-      border-radius: 999px;
-      padding: 4px 8px;
-      font-weight:700;
-      font-size:12px;
-      color: var(--muted);
-    }
-    .cardDesc{
-      margin:8px 0 0;
-      color:var(--muted);
-      font-size:13px;
-      line-height:1.35;
-    }
-
-    .sectionTitle{
-      margin: 18px 0 8px;
-      font-weight:900;
-      font-size:13px;
-      letter-spacing:.3px;
-      color: var(--muted);
-      text-transform: uppercase;
-    }
-
-    .empty{
-      border:1px dashed var(--line);
-      border-radius: var(--radius);
-      padding: 14px 14px;
-      color: var(--muted);
-      background: rgba(255,255,255,.55);
-    }
-
-    .footerNote{
-      width:min(980px, 100%);
-      margin: 18px auto 0;
-      color:var(--muted);
-      font-size:12px;
-      text-align:center;
-      opacity:.9;
-    }
-  </style>
-</head>
-
-<body>
-  <header class="topbar">
-    <div class="brand">
-      <span class="bolt">⚡</span>
-      <span>COO Dashboard</span>
-    </div>
-
-    <div class="right">
-      <span id="userPill" class="pill">User</span>
-      <button class="btn" id="logoutBtn" type="button">Logout</button>
-    </div>
-  </header>
-
-  <main class="wrap">
-    <section class="hero" aria-label="Welcome">
-      <h1 id="welcomeTitle">Welcome back!</h1>
-      <p>Choose where you would like to go.</p>
-    </section>
-
-    <div class="crumbs">
-      <div class="crumbLeft">
-        <button class="btn link" id="homeBtn" type="button">Home</button>
-        <span class="crumbSep">/</span>
-        <button class="btn link" id="backBtn" type="button">Back</button>
-      </div>
-      <div id="statusRight" class="pill" style="display:none;"></div>
-    </div>
-
-    <section class="panel">
-      <!-- these IDs must exist, the app JS expects them -->
-      <div id="loading" class="loading">Loading your access...</div>
-      <div id="errorBox" class="error"></div>
-      <div id="cardsContainer"></div>
-    </section>
-
-    <div class="footerNote">If something looks wrong, refresh once. If it persists, re-login.</div>
-  </main>
-
-  <script>
-    // -----------------------------
-    // Helpers
-    // -----------------------------
-    function safeJsonParse(text){
-      try { return JSON.parse(text); } catch(e) { return null; }
-    }
-    function setText(id, text){
-      var el = document.getElementById(id);
-      if (el) el.textContent = text;
-    }
-    function show(id){
-      var el = document.getElementById(id);
-      if (el) el.style.display = '';
-    }
-    function hide(id){
-      var el = document.getElementById(id);
-      if (el) el.style.display = 'none';
-    }
-    function showError(msg){
-      var box = document.getElementById('errorBox');
-      if (!box) return;
-      box.style.display = 'block';
-      box.textContent = msg || 'Unknown error.';
-    }
-    function clearError(){
-      var box = document.getElementById('errorBox');
-      if (!box) return;
-      box.style.display = 'none';
-      box.textContent = '';
-    }
-
-    // -----------------------------
-    // State
-    // -----------------------------
-    var currentPath = []; // category stack
-    var lastPageId = null;
-
-    // -----------------------------
-    // Auth and bootstrap
-    // -----------------------------
-    function getUser(){
-      var raw = localStorage.getItem('user');
-      var obj = safeJsonParse(raw);
-      return obj || {};
-    }
-    function getToken(){
-      return (localStorage.getItem('token') || '').trim();
-    }
-
-    function logout(){
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login.html';
-    }
-
-    function ensureLoggedIn(){
-      var token = getToken();
-      if (!token){
-        window.location.href = '/login.html';
-        return false;
-      }
-      return true;
-    }
-
-    // -----------------------------
-    // API
-    // -----------------------------
-    async function apiPost(payload){
-      // API_URL should exist in config.js; fallback to /api/gas if missing
-      var url = (typeof API_URL === 'string' && API_URL) ? API_URL : '/api/gas';
-
-      var res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      var text = await res.text();
-      var data = safeJsonParse(text);
-
-      if (!data){
-        throw new Error('Upstream returned non-JSON response.');
-      }
-      if (data && data.success === false){
-        throw new Error(data.error || 'Request failed.');
-      }
-      return data;
-    }
-
-    // -----------------------------
-    // Rendering
-    // -----------------------------
-    function renderHome(nav){
-      var container = document.getElementById('cardsContainer');
-      if (!container){
-        throw new Error('Missing #cardsContainer in portal.html');
-      }
-      container.innerHTML = '';
-
-      var cats = (nav && nav.categories) ? nav.categories : [];
-      var pages = (nav && nav.pages) ? nav.pages : [];
-
-      // Home: show categories first, then direct pages if any
-      if (cats.length){
-        var t1 = document.createElement('div');
-        t1.className = 'sectionTitle';
-        t1.textContent = 'Departments';
-        container.appendChild(t1);
-
-        var grid = document.createElement('div');
-        grid.className = 'grid';
-        cats.forEach(function(c){
-          grid.appendChild(makeCard({
-            title: c.name || c.category_name || c.id || 'Category',
-            desc: c.description || '',
-            count: c.count,
-            onClick: function(){
-              currentPath = [c];
-              lastPageId = null;
-              loadCategory(c.id || c.category_id || c.slug || c.name);
-            }
-          }));
-        });
-        container.appendChild(grid);
-      }
-
-      if (pages.length){
-        var t2 = document.createElement('div');
-        t2.className = 'sectionTitle';
-        t2.textContent = 'Pages';
-        container.appendChild(t2);
-
-        var grid2 = document.createElement('div');
-        grid2.className = 'grid';
-        pages.forEach(function(p){
-          grid2.appendChild(makeCard({
-            title: p.name || p.title || p.page_name || p.id || 'Page',
-            desc: p.description || '',
-            count: p.count,
-            onClick: function(){
-              lastPageId = p.id || p.page_id;
-              openPage(p);
-            }
-          }));
-        });
-        container.appendChild(grid2);
-      }
-
-      if (!cats.length && !pages.length){
-        var empty = document.createElement('div');
-        empty.className = 'empty';
-        empty.textContent = 'No pages available for your role.';
-        container.appendChild(empty);
-      }
-
-      updateCrumbs();
-    }
-
-    function renderCategoryView(catName, pages){
-      var container = document.getElementById('cardsContainer');
-      container.innerHTML = '';
-
-      var t = document.createElement('div');
-      t.className = 'sectionTitle';
-      t.textContent = (catName || 'Department') + ' pages';
-      container.appendChild(t);
-
-      if (!pages || !pages.length){
-        var empty = document.createElement('div');
-        empty.className = 'empty';
-        empty.textContent = 'No pages in this department.';
-        container.appendChild(empty);
-        updateCrumbs();
-        return;
-      }
-
-      var grid = document.createElement('div');
-      grid.className = 'grid';
-
-      pages.forEach(function(p){
-        grid.appendChild(makeCard({
-          title: p.name || p.title || p.page_name || p.id || 'Page',
-          desc: p.description || '',
-          count: p.count,
-          onClick: function(){
-            lastPageId = p.id || p.page_id;
-            openPage(p);
-          }
-        }));
-      });
-
-      container.appendChild(grid);
-      updateCrumbs();
-    }
-
-    function makeCard(opts){
-      var card = document.createElement('div');
-      card.className = 'card';
-      card.tabIndex = 0;
-      card.role = 'button';
-
-      var top = document.createElement('div');
-      top.className = 'cardTop';
-
-      var left = document.createElement('div');
-
-      var h = document.createElement('h3');
-      h.className = 'cardTitle';
-      h.textContent = opts.title || 'Item';
-
-      left.appendChild(h);
-
-      if (opts.desc){
-        var d = document.createElement('p');
-        d.className = 'cardDesc';
-        d.textContent = opts.desc;
-        left.appendChild(d);
-      }
-
-      var meta = document.createElement('div');
-      meta.className = 'cardMeta';
-
-      // Only show a badge if count is a real number
-      if (typeof opts.count === 'number' && !Number.isNaN(opts.count)){
-        var b = document.createElement('span');
-        b.className = 'badge';
-        b.textContent = String(opts.count);
-        meta.appendChild(b);
-      }
-
-      top.appendChild(left);
-      top.appendChild(meta);
-      card.appendChild(top);
-
-      function click(){
-        if (typeof opts.onClick === 'function') opts.onClick();
-      }
-      card.addEventListener('click', click);
-      card.addEventListener('keydown', function(e){
-        if (e.key === 'Enter' || e.key === ' '){
-          e.preventDefault();
-          click();
-        }
-      });
-      return card;
-    }
-
-    function updateCrumbs(){
-      // Right pill shows current dept only if we have one
-      var status = document.getElementById('statusRight');
-      if (!status) return;
-
-      if (currentPath.length){
-        status.textContent = (currentPath[0].name || currentPath[0].category_name || 'Department');
-        status.style.display = '';
-      } else {
-        status.textContent = '';
-        status.style.display = 'none';
-      }
-    }
-
-    // -----------------------------
-    // Navigation actions
-    // -----------------------------
-    async function loadNav(){
-      clearError();
-      show('loading');
-
-      var token = getToken();
-      var data = await apiPost({ action:'nav', token: token });
-
-      // backend may return { success:true, nav:{...} }
-      var nav = data.nav || data;
-
-      hide('loading');
-      renderHome(nav);
-    }
-
-    async function loadCategory(categoryId){
-      clearError();
-      show('loading');
-
-      var token = getToken();
-      // If your backend already returns per-category pages via nav, keep using nav and filter client-side.
-      // If you have a dedicated action like { action:'category', categoryId }, swap it here.
-      var data = await apiPost({ action:'nav', token: token });
-      var nav = data.nav || data;
-
-      var cats = (nav && nav.categories) ? nav.categories : [];
-      var pages = (nav && nav.pages) ? nav.pages : [];
-
-      // Try to find a matching category name
-      var chosen = null;
-      for (var i=0;i<cats.length;i++){
-        var c = cats[i];
-        var cid = c.id || c.category_id || c.slug || c.name;
-        if (String(cid) === String(categoryId)){ chosen = c; break; }
-      }
-      if (!chosen && currentPath.length) chosen = currentPath[0];
-
-      // Filter pages that belong to this category if page objects have category_id or category
-      var filtered = pages.filter(function(p){
-        var pid = p.category_id || p.category || p.categoryId;
-        if (pid == null) return false;
-        return String(pid) === String(categoryId);
-      });
-
-      hide('loading');
-      renderCategoryView((chosen && (chosen.name || chosen.category_name)) || 'Department', filtered);
-    }
-
-    function openPage(page){
-      // If you have dedicated page routes, change this.
-      // For now, we route to /dashboard.html?page_id=...
-      var pageId = page.id || page.page_id;
-      if (!pageId){
-        showError('Missing page id.');
-        return;
-      }
-      var url = '/dashboard.html?page_id=' + encodeURIComponent(pageId);
-      window.location.href = url;
-    }
-
-    // -----------------------------
-    // Events
-    // -----------------------------
-    document.getElementById('logoutBtn').addEventListener('click', logout);
-    document.getElementById('homeBtn').addEventListener('click', function(){
-      currentPath = [];
-      lastPageId = null;
-      loadNav().catch(function(err){ hide('loading'); showError(err.message); });
-    });
-    document.getElementById('backBtn').addEventListener('click', function(){
-      // simple: if in a category, go home; if on a page, browser handles back
-      if (currentPath.length){
-        currentPath = [];
-        lastPageId = null;
-        loadNav().catch(function(err){ hide('loading'); showError(err.message); });
-      } else {
-        window.history.back();
-      }
-    });
-
-    // -----------------------------
-    // Boot
-    // -----------------------------
-    (function init(){
-      if (!ensureLoggedIn()) return;
-
-      var u = getUser();
-      var name = (u && (u.name || u.email)) ? (u.name || u.email) : 'User';
-      var shortName = (u && u.name) ? u.name.split(' ')[0] : 'User';
-
-      setText('userPill', shortName);
-      setText('welcomeTitle', 'Welcome back, ' + (u.name ? u.name.split(' ')[0] : 'there') + '!');
-
-      loadNav().catch(function(err){
-        hide('loading');
-        showError(err.message || String(err));
-      });
-    })();
-  </script>
-</body>
-</html>
+diff --git a/portal.html b/portal.html
+index b648df70c582623d42dca0d0dd9ab01b036570d9..2e718cd202d91b69f173dec2420b202316dc46bb 100644
+--- a/portal.html
++++ b/portal.html
+@@ -350,144 +350,173 @@
+     async function apiPost(payload){
+       // API_URL should exist in config.js; fallback to /api/gas if missing
+       var url = (typeof API_URL === 'string' && API_URL) ? API_URL : '/api/gas';
+ 
+       var res = await fetch(url, {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify(payload)
+       });
+ 
+       var text = await res.text();
+       var data = safeJsonParse(text);
+ 
+       if (!data){
+         throw new Error('Upstream returned non-JSON response.');
+       }
+       if (data && data.success === false){
+         throw new Error(data.error || 'Request failed.');
+       }
+       return data;
+     }
+ 
+     // -----------------------------
+     // Rendering
+     // -----------------------------
++    function getCategoryId(cat){
++      return (cat && (cat.category_id || cat.id || cat.slug || cat.name)) ? (cat.category_id || cat.id || cat.slug || cat.name) : '';
++    }
++    function getCategoryName(cat){
++      return (cat && (cat.display_name || cat.name || cat.category_name || cat.id)) ? (cat.display_name || cat.name || cat.category_name || cat.id) : 'Category';
++    }
++    function getPageId(page){
++      return (page && (page.page_id || page.id)) ? (page.page_id || page.id) : '';
++    }
++    function getPageName(page){
++      return (page && (page.display_name || page.name || page.title || page.page_name || page.id)) ? (page.display_name || page.name || page.title || page.page_name || page.id) : 'Page';
++    }
++    function countPagesInCategory(cat){
++      var total = 0;
++      if (!cat) return total;
++      if (Array.isArray(cat.pages)) total += cat.pages.length;
++      if (Array.isArray(cat.children)){
++        cat.children.forEach(function(child){
++          total += countPagesInCategory(child);
++        });
++      }
++      return total;
++    }
++
+     function renderHome(nav){
+       var container = document.getElementById('cardsContainer');
+       if (!container){
+         throw new Error('Missing #cardsContainer in portal.html');
+       }
+       container.innerHTML = '';
+ 
+       var cats = (nav && nav.categories) ? nav.categories : [];
+       var pages = (nav && nav.pages) ? nav.pages : [];
+ 
+       // Home: show categories first, then direct pages if any
+       if (cats.length){
+         var t1 = document.createElement('div');
+         t1.className = 'sectionTitle';
+         t1.textContent = 'Departments';
+         container.appendChild(t1);
+ 
+         var grid = document.createElement('div');
+         grid.className = 'grid';
+         cats.forEach(function(c){
+           grid.appendChild(makeCard({
+-            title: c.name || c.category_name || c.id || 'Category',
++            title: getCategoryName(c),
+             desc: c.description || '',
+-            count: c.count,
++            count: Number.isFinite(c.count) ? c.count : countPagesInCategory(c),
+             onClick: function(){
+               currentPath = [c];
+               lastPageId = null;
+-              loadCategory(c.id || c.category_id || c.slug || c.name);
++              var cid = getCategoryId(c);
++              if (!cid){
++                showError('Missing category id.');
++                return;
++              }
++              window.location.href = '/dashboard.html?cat_id=' + encodeURIComponent(cid);
+             }
+           }));
+         });
+         container.appendChild(grid);
+       }
+ 
+       if (pages.length){
+         var t2 = document.createElement('div');
+         t2.className = 'sectionTitle';
+         t2.textContent = 'Pages';
+         container.appendChild(t2);
+ 
+         var grid2 = document.createElement('div');
+         grid2.className = 'grid';
+         pages.forEach(function(p){
+           grid2.appendChild(makeCard({
+-            title: p.name || p.title || p.page_name || p.id || 'Page',
++            title: getPageName(p),
+             desc: p.description || '',
+             count: p.count,
+             onClick: function(){
+-              lastPageId = p.id || p.page_id;
++              lastPageId = getPageId(p);
+               openPage(p);
+             }
+           }));
+         });
+         container.appendChild(grid2);
+       }
+ 
+       if (!cats.length && !pages.length){
+         var empty = document.createElement('div');
+         empty.className = 'empty';
+         empty.textContent = 'No pages available for your role.';
+         container.appendChild(empty);
+       }
+ 
+       updateCrumbs();
+     }
+ 
+     function renderCategoryView(catName, pages){
+       var container = document.getElementById('cardsContainer');
+       container.innerHTML = '';
+ 
+       var t = document.createElement('div');
+       t.className = 'sectionTitle';
+       t.textContent = (catName || 'Department') + ' pages';
+       container.appendChild(t);
+ 
+       if (!pages || !pages.length){
+         var empty = document.createElement('div');
+         empty.className = 'empty';
+         empty.textContent = 'No pages in this department.';
+         container.appendChild(empty);
+         updateCrumbs();
+         return;
+       }
+ 
+       var grid = document.createElement('div');
+       grid.className = 'grid';
+ 
+       pages.forEach(function(p){
+         grid.appendChild(makeCard({
+-          title: p.name || p.title || p.page_name || p.id || 'Page',
++          title: getPageName(p),
+           desc: p.description || '',
+           count: p.count,
+           onClick: function(){
+-            lastPageId = p.id || p.page_id;
++            lastPageId = getPageId(p);
+             openPage(p);
+           }
+         }));
+       });
+ 
+       container.appendChild(grid);
+       updateCrumbs();
+     }
+ 
+     function makeCard(opts){
+       var card = document.createElement('div');
+       card.className = 'card';
+       card.tabIndex = 0;
+       card.role = 'button';
+ 
+       var top = document.createElement('div');
+       top.className = 'cardTop';
+ 
+       var left = document.createElement('div');
+ 
+       var h = document.createElement('h3');
+       h.className = 'cardTitle';
+       h.textContent = opts.title || 'Item';
+ 
+       left.appendChild(h);
+@@ -511,112 +540,79 @@
+       }
+ 
+       top.appendChild(left);
+       top.appendChild(meta);
+       card.appendChild(top);
+ 
+       function click(){
+         if (typeof opts.onClick === 'function') opts.onClick();
+       }
+       card.addEventListener('click', click);
+       card.addEventListener('keydown', function(e){
+         if (e.key === 'Enter' || e.key === ' '){
+           e.preventDefault();
+           click();
+         }
+       });
+       return card;
+     }
+ 
+     function updateCrumbs(){
+       // Right pill shows current dept only if we have one
+       var status = document.getElementById('statusRight');
+       if (!status) return;
+ 
+       if (currentPath.length){
+-        status.textContent = (currentPath[0].name || currentPath[0].category_name || 'Department');
++        status.textContent = getCategoryName(currentPath[0]);
+         status.style.display = '';
+       } else {
+         status.textContent = '';
+         status.style.display = 'none';
+       }
+     }
+ 
+     // -----------------------------
+     // Navigation actions
+     // -----------------------------
+     async function loadNav(){
+       clearError();
+       show('loading');
+ 
+       var token = getToken();
+       var data = await apiPost({ action:'nav', token: token });
+ 
+       // backend may return { success:true, nav:{...} }
+       var nav = data.nav || data;
+ 
+       hide('loading');
+       renderHome(nav);
+     }
+ 
+-    async function loadCategory(categoryId){
+-      clearError();
+-      show('loading');
+-
+-      var token = getToken();
+-      // If your backend already returns per-category pages via nav, keep using nav and filter client-side.
+-      // If you have a dedicated action like { action:'category', categoryId }, swap it here.
+-      var data = await apiPost({ action:'nav', token: token });
+-      var nav = data.nav || data;
+-
+-      var cats = (nav && nav.categories) ? nav.categories : [];
+-      var pages = (nav && nav.pages) ? nav.pages : [];
+-
+-      // Try to find a matching category name
+-      var chosen = null;
+-      for (var i=0;i<cats.length;i++){
+-        var c = cats[i];
+-        var cid = c.id || c.category_id || c.slug || c.name;
+-        if (String(cid) === String(categoryId)){ chosen = c; break; }
+-      }
+-      if (!chosen && currentPath.length) chosen = currentPath[0];
+-
+-      // Filter pages that belong to this category if page objects have category_id or category
+-      var filtered = pages.filter(function(p){
+-        var pid = p.category_id || p.category || p.categoryId;
+-        if (pid == null) return false;
+-        return String(pid) === String(categoryId);
+-      });
+-
+-      hide('loading');
+-      renderCategoryView((chosen && (chosen.name || chosen.category_name)) || 'Department', filtered);
+-    }
+-
+     function openPage(page){
+       // If you have dedicated page routes, change this.
+       // For now, we route to /dashboard.html?page_id=...
+-      var pageId = page.id || page.page_id;
++      var pageId = getPageId(page);
+       if (!pageId){
+         showError('Missing page id.');
+         return;
+       }
+       var url = '/dashboard.html?page_id=' + encodeURIComponent(pageId);
+       window.location.href = url;
+     }
+ 
+     // -----------------------------
+     // Events
+     // -----------------------------
+     document.getElementById('logoutBtn').addEventListener('click', logout);
+     document.getElementById('homeBtn').addEventListener('click', function(){
+       currentPath = [];
+       lastPageId = null;
+       loadNav().catch(function(err){ hide('loading'); showError(err.message); });
+     });
+     document.getElementById('backBtn').addEventListener('click', function(){
+       // simple: if in a category, go home; if on a page, browser handles back
+       if (currentPath.length){
+         currentPath = [];
+         lastPageId = null;
+         loadNav().catch(function(err){ hide('loading'); showError(err.message); });
+       } else {
+         window.history.back();
