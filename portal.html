@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portal - COO Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body{font-family:Inter,Arial,sans-serif;margin:0;background:#0b1220;color:#e6eefc}
+    header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.08);background:#0b1220;position:sticky;top:0}
+    .brand{font-weight:900}
+    .wrap{display:flex;min-height:calc(100vh - 52px)}
+    .side{width:280px;flex:0 0 280px;border-right:1px solid rgba(255,255,255,.08);padding:12px;box-sizing:border-box}
+    .main{flex:1;padding:16px}
+    .card{background:#111b33;border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:14px;margin-bottom:12px}
+    .cat{padding:10px 10px;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:space-between}
+    .cat:hover{background:rgba(255,255,255,.06)}
+    .pages{margin:6px 0 0 8px;display:none}
+    .cat.open + .pages{display:block}
+    .page{padding:8px 10px;border-radius:10px;cursor:pointer;opacity:.95}
+    .page:hover{background:rgba(255,255,255,.06)}
+    .muted{opacity:.75;font-size:13px}
+    button{background:#1f7aff;border:0;color:#fff;font-weight:800;border-radius:10px;padding:10px 12px;cursor:pointer}
+    .pill{font-size:12px;opacity:.8}
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <div class="brand">COO Dashboard</div>
+      <div class="muted" id="who"></div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center">
+      <div class="pill" id="role"></div>
+      <button id="logoutBtn">Logout</button>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <aside class="side">
+      <div class="card">
+        <div class="muted">Menu</div>
+        <div id="nav"></div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="card">
+        <div style="font-weight:800">Pick a page</div>
+        <div class="muted">Your access is applied automatically from config.</div>
+      </div>
+      <div id="hint" class="muted"></div>
+    </main>
+  </div>
+
+<script src="config.js"></script>
+<script>
+
+  function getToken(){ return localStorage.getItem('token') || ''; }
+  function getUser(){
+    try{ return JSON.parse(localStorage.getItem('user')||'{}'); }catch(e){ return {}; }
+  }
+  function esc(s){ return String(s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+  async function api(action, payload){
+    const r = await fetch(API_URL, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(Object.assign({action, token:getToken()}, payload||{}))
+    });
+    return await r.json();
+  }
+
+  function renderNav(nav){
+    const root=document.getElementById('nav');
+    root.innerHTML='';
+    (nav.categories||[]).forEach(cat=>{
+      const catDiv=document.createElement('div');
+      catDiv.className='cat';
+      catDiv.innerHTML = `<div>${esc(cat.icon||'')} ${esc(cat.display_name||cat.category_id)}</div><div class="muted">›</div>`;
+      const pages=document.createElement('div');
+      pages.className='pages';
+
+      (cat.pages||[]).forEach(p=>{
+        const pDiv=document.createElement('div');
+        pDiv.className='page';
+        pDiv.textContent = p.display_name || p.page_id;
+        pDiv.addEventListener('click', ()=>{
+          if (p.page_id === 'hr_invite' || p.page_id === 'admin_invite_user') {
+        location.href = 'invite_user.html';
+      } else {
+        location.href = 'dashboard.html?page_id=' + encodeURIComponent(p.page_id);
+      }
+        });
+        pages.appendChild(pDiv);
+      });
+
+      catDiv.addEventListener('click', ()=>{
+        catDiv.classList.toggle('open');
+      });
+
+      root.appendChild(catDiv);
+      root.appendChild(pages);
+    });
+  }
+
+  async function boot(){
+    const u=getUser();
+    document.getElementById('who').textContent = u.name ? (u.name + ' (' + (u.department||'') + ')') : (u.email || '');
+    document.getElementById('role').textContent = u.role || '';
+
+    const token=getToken();
+    if(!token){
+      location.href = 'index.html';
+      return;
+    }
+    const res = await api('nav', {});
+    if(!res.success){
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      location.href = 'index.html';
+      return;
+    }
+    renderNav(res.nav || {});
+    document.getElementById('hint').textContent = 'Loaded ' + ((res.nav && res.nav.categories) ? res.nav.categories.length : 0) + ' sections';
+  }
+
+  document.getElementById('logoutBtn').addEventListener('click', async ()=>{
+    try{ await api('logout', {}); }catch(e){}
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    location.href = 'index.html';
+  });
+
+  boot();
+</script>
+</body>
+</html>

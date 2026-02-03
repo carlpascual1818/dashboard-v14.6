@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Accept Invite - COO Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body{font-family:Inter,Arial,sans-serif;background:#0b1220;color:#fff;margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
+    .card{width:100%;max-width:520px;background:#111b33;border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:28px;box-shadow:0 10px 30px rgba(0,0,0,.35);}
+    h1{margin:0 0 6px;font-size:20px}
+    .sub{opacity:.8;margin:0 0 18px;font-size:13px}
+    label{display:block;margin:12px 0 6px;font-size:13px;opacity:.9}
+    input{width:100%;padding:12px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:#0b1220;color:#fff;font-size:14px}
+    button{width:100%;margin-top:14px;padding:12px;border-radius:10px;border:0;background:#1f7aff;color:#fff;font-weight:800;font-size:14px;cursor:pointer}
+    button:disabled{opacity:.65;cursor:not-allowed}
+    .msg{margin-top:12px;font-size:13px}
+    .err{color:#ff7a7a}
+    .ok{color:#7affb2}
+    a{color:#9bc2ff}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Accept invite</h1>
+    <p class="sub">Use the code you received.</p>
+
+    <form id="f">
+      <label>Invite code</label>
+      <input id="code" required>
+
+      <label>Name</label>
+      <input id="name" placeholder="Your name" required>
+
+      <label>Set password</label>
+      <input id="pass" type="password" required>
+
+      <button id="btn" type="submit">Create account</button>
+      <div id="msg" class="msg"></div>
+    </form>
+
+    <div class="sub" style="margin-top:12px">
+      <a href="?ui=login">Back to login</a>
+    </div>
+  </div>
+
+<script src="config.js"></script>
+<script>
+  const u = new URL(location.href);
+  const pre = u.searchParams.get('code') || '';
+  document.getElementById('code').value = pre;
+
+  function setMsg(text, cls){
+    const el=document.getElementById('msg');
+    el.className='msg ' + (cls||'');
+    el.textContent=text||'';
+  }
+
+  document.getElementById('f').addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const btn=document.getElementById('btn');
+    btn.disabled=true;
+    setMsg('Submitting...');
+    try{
+      const payload = {
+        action:'acceptInvite',
+        invite_code: document.getElementById('code').value.trim(),
+        name: document.getElementById('name').value.trim(),
+        password: document.getElementById('pass').value
+      };
+      const r = await fetch(API_URL, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
+      const data = await r.json();
+      if(!data.success){
+        setMsg(data.error || 'Failed', 'err');
+        btn.disabled=false;
+        return;
+      }
+      setMsg('Account created. Go to login.', 'ok');
+      setTimeout(()=>{ location.href = 'index.html'; }, 700);
+    }catch(err){
+      console.error(err);
+      setMsg('Error. Check console.', 'err');
+      btn.disabled=false;
+    }
+  });
+</script>
+</body>
+</html>

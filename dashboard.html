@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - COO Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    body{font-family:Inter,Arial,sans-serif;margin:0;background:#0b1220;color:#e6eefc}
+    header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.08);background:#0b1220;position:sticky;top:0}
+    .brand{font-weight:900;cursor:pointer}
+    .wrap{padding:16px}
+    .card{background:#111b33;border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:14px;margin-bottom:12px}
+    .muted{opacity:.75;font-size:13px}
+    .filters{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
+    select,input{padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:#0b1220;color:#e6eefc}
+    button{background:#1f7aff;border:0;color:#fff;font-weight:800;border-radius:10px;padding:10px 12px;cursor:pointer}
+    table{width:100%;border-collapse:collapse;font-size:13px}
+    th,td{border-bottom:1px solid rgba(255,255,255,.08);padding:8px 8px;text-align:left;vertical-align:top}
+    th{opacity:.85}
+    .grid{display:grid;grid-template-columns:1fr;gap:12px}
+    @media(min-width:1100px){.grid{grid-template-columns:1.2fr .8fr}}
+    canvas{max-height:280px}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand" id="back">COO Dashboard</div>
+    <div class="muted" id="title"></div>
+  </header>
+
+  <div class="wrap">
+    <div class="card">
+      <div style="font-weight:900" id="pageName">Loading...</div>
+      <div class="muted" id="pageMeta"></div>
+
+      <div class="filters" id="filters"></div>
+
+      <div style="margin-top:10px;display:flex;gap:10px;align-items:center">
+        <button id="reload">Reload</button>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <div style="font-weight:800;margin-bottom:8px">Data</div>
+        <div id="tableWrap"></div>
+      </div>
+
+      <div class="card">
+        <div style="font-weight:800;margin-bottom:8px">Trend</div>
+        <div class="muted" id="chartHint">Charts show for KPI views when data fits.</div>
+        <canvas id="chart"></canvas>
+      </div>
+    </div>
+  </div>
+
+<script src="config.js"></script>
+<script>
+  const url = new URL(location.href);
+  const pageId = url.searchParams.get('page_id') || '';
+
+  function getToken(){ return localStorage.getItem('token') || ''; }
+  function getUser(){ try{return JSON.parse(localStorage.getItem('user')||'{}');}catch(e){return {}; } }
+  function esc(s){ return String(s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+  async function api(action, payload){
+    const r = await fetch(API_URL, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(Object.assign({action, token:getToken()}, payload||{}))
+    });
+    return await r.json();
+  }
+
+  function renderTable(headers, rows){
+    if(!headers || !headers.length){ return '<div class="muted">No data</div>'; }
+    let html = '<table><thead><tr>' + headers.map(h=>'<th>'+esc(h)+'</th>').join('') + '</tr></thead><tbody>';
+    (rows||[]).forEach(r=>{
+      html += '<tr>' + headers.map((h,i)=>'<td>'+esc(r[i])+'</td>').join('') + '</tr>';
+    });
+    html += '</tbody></table>';
+    return html;
+  }
+
+  let chart;
+  function renderChart(headers, rows, meta){
+    // Expect KPI-style: date, employee_id(optional), kpi_name, value, target_value(optional)
+    const h = headers.map(x=>String(x||'').toLowerCase());
+    const idxDate = h.indexOf('date');
+    const idxKpi = h.indexOf('kpi_name');
+    const idxVal = h.indexOf('value');
+    if(idxDate === -1 || idxKpi === -1 || idxVal === -1){
+      document.getElementById('chartHint').textContent = 'Chart needs columns: date, kpi_name, value';
+      if(chart){ chart.destroy(); chart=null; }
+      return;
+    }
+    const pointsByKpi = {};
+    rows.forEach(r=>{
+      const d = r[idxDate];
+      const k = r[idxKpi];
+      const v = Number(r[idxVal]);
+      if(!k || !d || isNaN(v)) return;
+      if(!pointsByKpi[k]) pointsByKpi[k]=[];
+      pointsByKpi[k].push({x:d, y:v});
+    });
+
+    const keys = Object.keys(pointsByKpi).slice(0, 5); // keep it light
+    const datasets = keys.map(k=>({label:k, data:pointsByKpi[k].sort((a,b)=>String(a.x).localeCompare(String(b.x)))}));
+
+    const ctx=document.getElementById('chart');
+    if(chart){ chart.destroy(); }
+    chart = new Chart(ctx, {
+      type:'line',
+      data:{datasets},
+      options:{
+        responsive:true,
+        parsing:false,
+        scales:{x:{type:'category'}},
+        plugins:{legend:{display:true}}
+      }
+    });
+    document.getElementById('chartHint').textContent = keys.length ? 'Showing up to 5 KPIs' : 'No KPI rows to chart';
+  }
+
+  function buildFilters(meta){
+    const f = document.getElementById('filters');
+    f.innerHTML='';
+
+    const user = getUser();
+    // Person filter (only if employee_id exists in data)
+    if(meta && meta.people_options && meta.people_options.length){
+      const sel=document.createElement('select');
+      sel.id='person';
+      sel.innerHTML = '<option value="">All people</option>' + meta.people_options.map(p=>`<option value="${esc(p)}">${esc(p)}</option>`).join('');
+      f.appendChild(sel);
+    }
+    // KPI filter
+    if(meta && meta.kpi_options && meta.kpi_options.length){
+      const sel=document.createElement('select');
+      sel.id='kpi';
+      sel.innerHTML = '<option value="">All KPIs</option>' + meta.kpi_options.map(p=>`<option value="${esc(p)}">${esc(p)}</option>`).join('');
+      f.appendChild(sel);
+    }
+    // Date range
+    const d1=document.createElement('input');
+    d1.type='date'; d1.id='date_from';
+    const d2=document.createElement('input');
+    d2.type='date'; d2.id='date_to';
+    f.appendChild(d1); f.appendChild(d2);
+  }
+
+  async function load(){
+    if(!getToken()){
+      location.href = 'index.html';
+      return;
+    }
+    document.getElementById('title').textContent = pageId;
+    const res = await api('page', { page_id: pageId, filters: collectFilters() });
+    if(!res.success){
+      document.getElementById('pageName').textContent = 'Access denied';
+      document.getElementById('pageMeta').textContent = res.error || '';
+      document.getElementById('tableWrap').innerHTML = '<div class="muted">No data</div>';
+      if(chart){ chart.destroy(); chart=null; }
+      return;
+    }
+    document.getElementById('pageName').textContent = res.page && res.page.display_name ? res.page.display_name : pageId;
+    document.getElementById('pageMeta').textContent = res.page && res.page.table ? ('Table: ' + res.page.table) : '';
+    buildFilters(res.meta || {});
+    document.getElementById('tableWrap').innerHTML = renderTable(res.page.columns, res.page.rows);
+    renderChart(res.page.columns, res.page.rows, res.page);
+  }
+
+  function collectFilters(){
+    const out = {};
+    const p = document.getElementById('person');
+    const k = document.getElementById('kpi');
+    const d1 = document.getElementById('date_from');
+    const d2 = document.getElementById('date_to');
+    if(p && p.value) out.person = p.value;
+    if(k && k.value) out.kpi = k.value;
+    if(d1 && d1.value) out.date_from = d1.value;
+    if(d2 && d2.value) out.date_to = d2.value;
+    return out;
+  }
+
+  document.getElementById('back').addEventListener('click', ()=>{
+    location.href = 'portal.html';
+  });
+  document.getElementById('reload').addEventListener('click', load);
+
+  load();
+</script>
+</body>
+</html>

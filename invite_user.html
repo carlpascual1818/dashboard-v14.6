@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Invite user</title>
+  <style>
+    body{font-family:Inter,Arial,sans-serif;margin:0;background:#0b1220;color:#e6eefc}
+    .wrap{max-width:720px;margin:0 auto;padding:20px}
+    .card{background:#111a2e;border:1px solid #223055;border-radius:14px;padding:16px}
+    label{display:block;font-size:12px;color:#9fb0d0;margin:10px 0 6px}
+    input,select{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #2a3b66;background:#0b1220;color:#e6eefc}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    button{margin-top:14px;padding:10px 14px;border-radius:10px;border:0;background:#22c55e;color:#05110a;font-weight:700;cursor:pointer}
+    .muted{color:#9fb0d0;font-size:12px}
+    .msg{margin-top:12px;padding:10px 12px;border-radius:10px;background:#0b1220;border:1px solid #2a3b66}
+    .top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+    a{color:#7dd3fc}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div>
+      <div style="font-size:18px;font-weight:800">Invite user</div>
+      <div class="muted">Creates an invite code and link. User sets their password on the invite page.</div>
+    </div>
+    <button id="backBtn" style="background:#38bdf8;color:#06121a">Back</button>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <div>
+        <label>Email</label>
+        <input id="email" type="email" placeholder="name@company.com">
+      </div>
+      <div>
+        <label>Department</label>
+        <select id="department">
+          <option value="">Select</option>
+          <option>Customer Service</option>
+          <option>Operations</option>
+          <option>Funnel Building</option>
+          <option>Creatives</option>
+          <option>FB</option>
+          <option>HR</option>
+          <option>Finance</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label>Role</label>
+        <select id="role"></select>
+      </div>
+      <div>
+        <label>Level</label>
+        <select id="position_level">
+          <option value="">None</option>
+          <option>Junior</option>
+          <option>Senior</option>
+          <option>Lead</option>
+          <option>Manager</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label>Employment type</label>
+        <select id="employment_type">
+          <option value="">None</option>
+          <option>Full-time</option>
+          <option>Part-time</option>
+          <option>Project-based</option>
+        </select>
+      </div>
+      <div>
+        <label></label>
+        <div class="muted" style="margin-top:8px">Invite link goes to the existing invite page.</div>
+      </div>
+    </div>
+
+    <button id="createBtn">Create invite</button>
+
+    <div id="out"></div>
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script>
+  function getToken(){ return localStorage.getItem('token') || ''; }
+  function show(msg){ document.getElementById('out').innerHTML = '<div class="msg">' + msg + '</div>'; }
+
+  async function api(action, payload){
+    const r = await fetch(API_URL, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(Object.assign({action, token:getToken()}, payload||{}))
+    });
+    return await r.json();
+  }
+
+  document.getElementById('backBtn').addEventListener('click', function(){
+    location.href = 'portal.html';
+  });
+
+  async function loadRoles(){
+    try {
+      const res = await api('listRoles', {});
+      var sel = document.getElementById('role');
+      sel.innerHTML = '';
+      var roles = (res && res.roles) ? res.roles : [];
+      if(!roles.length) roles = [{role_id:'employee',display_name:'Employee'},{role_id:'manager',display_name:'Manager'}];
+      roles.forEach(function(r){
+        var opt=document.createElement('option');
+        opt.value=r.role_id || r; 
+        opt.textContent=r.display_name || r;
+        sel.appendChild(opt);
+      });
+    } catch(err) {
+      console.error('Load roles error:', err);
+    }
+  }
+
+  document.getElementById('createBtn').addEventListener('click', async function(){
+    var email = document.getElementById('email').value.trim();
+    var role = document.getElementById('role').value.trim();
+    var dept = document.getElementById('department').value.trim();
+    var positionId = document.getElementById('position_level').value.trim();
+    var empType = document.getElementById('employment_type').value.trim();
+
+    if(!email){ show('Missing email'); return; }
+
+    var btn=this;
+    btn.disabled=true; btn.textContent='Creating...';
+
+    try {
+      const res = await api('createInvite', {
+        email: email,
+        role: role,
+        department: dept,
+        position_id: positionId,
+        employment_type: empType
+      });
+      
+      btn.disabled=false; btn.textContent='Create invite';
+      if(!res || !res.success){ show('Error: ' + ((res && res.error) ? res.error : 'unknown')); return; }
+      var link = res.link || '';
+      var code = res.invite_code || '';
+      show('Invite code: <b>' + code + '</b><br><a target="_blank" href="'+link+'">Open invite link</a><br><button id="copyBtn" style="margin-top:10px;background:#a78bfa;color:#140a1f">Copy link</button>');
+      setTimeout(function(){
+        var c=document.getElementById('copyBtn');
+        if(c){
+          c.addEventListener('click', function(){
+            navigator.clipboard.writeText(link);
+            c.textContent='Copied';
+          });
+        }
+      }, 50);
+    } catch(err) {
+      btn.disabled=false; btn.textContent='Create invite';
+      show('Error: ' + err);
+      console.error('Create invite error:', err);
+    }
+  });
+
+  loadRoles();
+</script>
+</body>
+</html>
