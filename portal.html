@@ -372,6 +372,30 @@
     // -----------------------------
     // Rendering
     // -----------------------------
+    function getCategoryId(cat){
+      return (cat && (cat.category_id || cat.id || cat.slug || cat.name)) ? (cat.category_id || cat.id || cat.slug || cat.name) : '';
+    }
+    function getCategoryName(cat){
+      return (cat && (cat.display_name || cat.name || cat.category_name || cat.id)) ? (cat.display_name || cat.name || cat.category_name || cat.id) : 'Category';
+    }
+    function getPageId(page){
+      return (page && (page.page_id || page.id)) ? (page.page_id || page.id) : '';
+    }
+    function getPageName(page){
+      return (page && (page.display_name || page.name || page.title || page.page_name || page.id)) ? (page.display_name || page.name || page.title || page.page_name || page.id) : 'Page';
+    }
+    function countPagesInCategory(cat){
+      var total = 0;
+      if (!cat) return total;
+      if (Array.isArray(cat.pages)) total += cat.pages.length;
+      if (Array.isArray(cat.children)){
+        cat.children.forEach(function(child){
+          total += countPagesInCategory(child);
+        });
+      }
+      return total;
+    }
+
     function renderHome(nav){
       var container = document.getElementById('cardsContainer');
       if (!container){
@@ -393,13 +417,18 @@
         grid.className = 'grid';
         cats.forEach(function(c){
           grid.appendChild(makeCard({
-            title: c.name || c.category_name || c.id || 'Category',
+            title: getCategoryName(c),
             desc: c.description || '',
-            count: c.count,
+            count: Number.isFinite(c.count) ? c.count : countPagesInCategory(c),
             onClick: function(){
               currentPath = [c];
               lastPageId = null;
-              loadCategory(c.id || c.category_id || c.slug || c.name);
+              var cid = getCategoryId(c);
+              if (!cid){
+                showError('Missing category id.');
+                return;
+              }
+              window.location.href = '/dashboard.html?cat_id=' + encodeURIComponent(cid);
             }
           }));
         });
@@ -416,11 +445,11 @@
         grid2.className = 'grid';
         pages.forEach(function(p){
           grid2.appendChild(makeCard({
-            title: p.name || p.title || p.page_name || p.id || 'Page',
+            title: getPageName(p),
             desc: p.description || '',
             count: p.count,
             onClick: function(){
-              lastPageId = p.id || p.page_id;
+              lastPageId = getPageId(p);
               openPage(p);
             }
           }));
@@ -461,11 +490,11 @@
 
       pages.forEach(function(p){
         grid.appendChild(makeCard({
-          title: p.name || p.title || p.page_name || p.id || 'Page',
+          title: getPageName(p),
           desc: p.description || '',
           count: p.count,
           onClick: function(){
-            lastPageId = p.id || p.page_id;
+            lastPageId = getPageId(p);
             openPage(p);
           }
         }));
@@ -533,7 +562,7 @@
       if (!status) return;
 
       if (currentPath.length){
-        status.textContent = (currentPath[0].name || currentPath[0].category_name || 'Department');
+        status.textContent = getCategoryName(currentPath[0]);
         status.style.display = '';
       } else {
         status.textContent = '';
@@ -558,43 +587,10 @@
       renderHome(nav);
     }
 
-    async function loadCategory(categoryId){
-      clearError();
-      show('loading');
-
-      var token = getToken();
-      // If your backend already returns per-category pages via nav, keep using nav and filter client-side.
-      // If you have a dedicated action like { action:'category', categoryId }, swap it here.
-      var data = await apiPost({ action:'nav', token: token });
-      var nav = data.nav || data;
-
-      var cats = (nav && nav.categories) ? nav.categories : [];
-      var pages = (nav && nav.pages) ? nav.pages : [];
-
-      // Try to find a matching category name
-      var chosen = null;
-      for (var i=0;i<cats.length;i++){
-        var c = cats[i];
-        var cid = c.id || c.category_id || c.slug || c.name;
-        if (String(cid) === String(categoryId)){ chosen = c; break; }
-      }
-      if (!chosen && currentPath.length) chosen = currentPath[0];
-
-      // Filter pages that belong to this category if page objects have category_id or category
-      var filtered = pages.filter(function(p){
-        var pid = p.category_id || p.category || p.categoryId;
-        if (pid == null) return false;
-        return String(pid) === String(categoryId);
-      });
-
-      hide('loading');
-      renderCategoryView((chosen && (chosen.name || chosen.category_name)) || 'Department', filtered);
-    }
-
     function openPage(page){
       // If you have dedicated page routes, change this.
       // For now, we route to /dashboard.html?page_id=...
-      var pageId = page.id || page.page_id;
+      var pageId = getPageId(page);
       if (!pageId){
         showError('Missing page id.');
         return;
