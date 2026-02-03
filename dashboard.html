@@ -383,7 +383,7 @@
     document.getElementById('crumb').textContent = parts.length ? ('/ ' + parts.join(' / ')) : '';
   }
 
-  function renderSidebar(sectionCat, activeDeptId) {
+  function renderSidebar(sectionCat, activeDeptId, activePageId) {
     const sb = document.getElementById('sidebar');
 
     if (!sectionCat) {
@@ -399,7 +399,44 @@
       return;
     }
 
-    const items = flattenCats(sectionCat, 0);
+    const hasChildren = sectionCat.children && sectionCat.children.length;
+    const items = hasChildren ? flattenCats(sectionCat, 0) : [];
+
+    if (!hasChildren) {
+      const pages = sectionCat.pages || [];
+      const body = pages.map(p => {
+        const isActive = String(p.page_id) === String(activePageId || '');
+        return `
+          <div>
+            <div class="navItem ${isActive ? 'active' : ''}" data-page="${esc(p.page_id)}">
+              <div>
+                <div class="navLabel">${esc(p.display_name || p.page_id)}</div>
+                <div class="navMeta">${p.view_type === 'chart' ? 'Chart' : 'Table'}</div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      sb.innerHTML = `
+        <div class="sideHead">
+          <div>
+            <div class="sideTitle">${esc(getCategoryName(sectionCat))}</div>
+            <div class="sideSub">Pages</div>
+          </div>
+        </div>
+        <div class="sideBody">${body || '<div class="muted" style="padding:10px 10px;">No pages configured.</div>'}</div>
+      `;
+
+      sb.querySelectorAll('.navItem').forEach(el => {
+        el.addEventListener('click', () => {
+          const page = el.getAttribute('data-page');
+          setQuery({ page_id: page }, false);
+          render();
+        });
+      });
+      return;
+    }
 
     const body = items.map(({cat, depth}) => {
       const isActive = (String(getCategoryId(cat)) === String(activeDeptId));
@@ -750,7 +787,7 @@
       }
     }
 
-    renderSidebar(sectionCat, resolvedDeptId);
+    renderSidebar(sectionCat, resolvedDeptId, pageId);
 
     if (!sectionCat) {
       updateCrumb(null, null, null);
