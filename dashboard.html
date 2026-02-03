@@ -322,12 +322,20 @@
     document.getElementById('spinner').style.display = on ? 'flex' : 'none';
   }
 
+  function getCategoryId(cat) {
+    return (cat && (cat.category_id || cat.id || cat.slug || cat.name)) ? (cat.category_id || cat.id || cat.slug || cat.name) : '';
+  }
+
+  function getCategoryName(cat) {
+    return (cat && (cat.display_name || cat.name || cat.category_name || cat.id)) ? (cat.display_name || cat.name || cat.category_name || cat.id) : 'Category';
+  }
+
   function findCatById(rootCats, id) {
     if (!id) return null;
     const stack = [...(rootCats || [])];
     while (stack.length) {
       const c = stack.shift();
-      if (c.category_id === id) return c;
+      if (String(getCategoryId(c)) === String(id)) return c;
       (c.children || []).forEach(ch => stack.push(ch));
     }
     return null;
@@ -351,8 +359,8 @@
 
   function updateCrumb(sectionCat, deptCat, pageName) {
     const parts = [];
-    if (sectionCat) parts.push(sectionCat.display_name);
-    if (deptCat) parts.push(deptCat.display_name);
+    if (sectionCat) parts.push(getCategoryName(sectionCat));
+    if (deptCat) parts.push(getCategoryName(deptCat));
     if (pageName) parts.push(pageName);
     document.getElementById('crumb').textContent = parts.length ? ('/ ' + parts.join(' / ')) : '';
   }
@@ -376,14 +384,14 @@
     const items = flattenCats(sectionCat, 0);
 
     const body = items.map(({cat, depth}) => {
-      const isActive = (cat.category_id === activeDeptId);
+      const isActive = (String(getCategoryId(cat)) === String(activeDeptId));
       const pages = (cat.pages || []).length;
       const kids = (cat.children || []).length;
       return `
         <div class="${depth ? 'navIndent' : ''}">
-          <div class="navItem ${isActive ? 'active' : ''}" data-cat="${esc(cat.category_id)}">
+          <div class="navItem ${isActive ? 'active' : ''}" data-cat="${esc(getCategoryId(cat))}">
             <div>
-              <div class="navLabel">${esc(cat.display_name)}</div>
+              <div class="navLabel">${esc(getCategoryName(cat))}</div>
               <div class="navMeta">${pages ? (pages + ' pages') : (kids ? (kids + ' sub-depts') : ' ')}</div>
             </div>
           </div>
@@ -394,7 +402,7 @@
     sb.innerHTML = `
       <div class="sideHead">
         <div>
-          <div class="sideTitle">${esc(sectionCat.display_name)}</div>
+          <div class="sideTitle">${esc(getCategoryName(sectionCat))}</div>
           <div class="sideSub">Departments</div>
         </div>
       </div>
@@ -423,8 +431,8 @@
         <div class="panelBody">
           <div class="gridCards">
             ${kids.map(c => `
-              <div class="cardBtn" data-dept="${esc(c.category_id)}">
-                <div class="name">${esc(c.display_name)}</div>
+              <div class="cardBtn" data-dept="${esc(getCategoryId(c))}">
+                <div class="name">${esc(getCategoryName(c))}</div>
                 <div class="hint">${countPages(c)} pages${(c.children||[]).length ? (', ' + (c.children||[]).length + ' sub-depts') : ''}</div>
                 <div class="chips">
                   ${(c.pages||[]).slice(0,3).map(p => `<span class="chip">${esc(p.display_name)}</span>`).join('')}
@@ -448,15 +456,15 @@
         <div class="panel">
           <div class="panelHead">
             <div>
-              <div class="panelTitle">${esc(deptCat.display_name)}</div>
+              <div class="panelTitle">${esc(getCategoryName(deptCat))}</div>
               <div class="panelSub">Choose a branch.</div>
             </div>
           </div>
           <div class="panelBody">
             <div class="gridCards">
               ${kids.map(c => `
-                <div class="cardBtn" data-dept="${esc(c.category_id)}">
-                  <div class="name">${esc(c.display_name)}</div>
+                <div class="cardBtn" data-dept="${esc(getCategoryId(c))}">
+                  <div class="name">${esc(getCategoryName(c))}</div>
                   <div class="hint">${countPages(c)} pages</div>
                   <div class="chips">
                     ${(c.pages||[]).slice(0,3).map(p => `<span class="chip">${esc(p.display_name)}</span>`).join('')}
@@ -474,7 +482,7 @@
       <div class="panel">
         <div class="panelHead">
           <div>
-            <div class="panelTitle">${esc(deptCat.display_name)}</div>
+            <div class="panelTitle">${esc(getCategoryName(deptCat))}</div>
             <div class="panelSub">Choose a page.</div>
           </div>
         </div>
