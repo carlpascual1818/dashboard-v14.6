@@ -1,19 +1,31 @@
 // api/gas.js
 // Vercel Serverless Function proxy to Google Apps Script Web App.
-// Set env var GAS_URL (preferred) or GAS_WEBAPP_URL in Vercel Project Settings.
-//
-// Expected GAS_URL value example:
-// https://script.google.com/macros/s/AKfycb.../exec
+// Env var: GAS_URL (preferred) or GAS_WEBAPP_URL.
+// This endpoint is intended for POST requests that return JSON.
 
 module.exports = async function handler(req, res) {
-  // Allow browser calls
+  // CORS (safe for same-origin too)
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  // Never cache API responses
+  res.setHeader('Cache-Control', 'no-store');
 
   if (req.method === 'OPTIONS') {
     res.statusCode = 204;
     res.end();
+    return;
+  }
+
+  // This proxy is POST-only. Avoid forwarding GET to Apps Script doGet (UI path).
+  if (req.method !== 'POST') {
+    res.statusCode = 405;
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.end(JSON.stringify({
+      success: false,
+      error: 'Method not allowed. Use POST with JSON body { action: "...", ... }.'
+    }));
     return;
   }
 
@@ -25,19 +37,7 @@ module.exports = async function handler(req, res) {
     return;
   }
 
-  // Parse incoming URL to get query params (req.query is not always available outside Next.js)
-  const incoming = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
-
-  // Build target URL
-  const target = new URL(gasUrlRaw);
-  // Forward querystring for GET requests
-  if (req.method === 'GET') {
-    incoming.searchParams.forEach((value, key) => {
-      target.searchParams.append(key, value);
-    });
-  }
-
-  // Read raw body for POST/PUT/etc
+  // Read raw body
   async function readBody(r) {
     return await new Promise((resolve, reject) => {
       const chunks = [];
@@ -47,49 +47,70 @@ module.exports = async function handler(req, res) {
     });
   }
 
-  let body;
-  const headers = {};
+  // Preserve request content-type, default to JSON
+  const ct = String(req.headers['content-type'] || '').toLowerCase();
+  const headers = { 'Content-Type': ct || 'application/json; charset=utf-8' };
 
-  if (req.method !== 'GET') {
-    const ct = String(req.headers['content-type'] || '').toLowerCase();
-    // Preserve content-type when present. Apps Script can read either JSON or urlencoded.
-    headers['Content-Type'] = ct || 'application/x-www-form-urlencoded; charset=utf-8';
-    const raw = await readBody(req);
-    body = raw && raw.length ? raw : undefined;
-  }
+  const raw = await readBody(req);
+  const body = raw && raw.length ? raw : Buffer.from('{}');
+
+  // Timeout guard (prevents hanging requests)
+  const timeoutMs = Number(process.env.GAS_PROXY_TIMEOUT_MS || 20000);
+  const ac = new AbortController();
+  const t = setTimeout(() => ac.abort(), timeoutMs);
 
   try {
+    const target = new URL(gasUrlRaw);
+
     const resp = await fetch(target.toString(), {
-      method: req.method,
+      method: 'POST',
       headers,
       body,
-      redirect: 'follow'
+      redirect: 'follow',
+      signal: ac.signal
     });
 
     const text = await resp.text();
+    const respCt = (resp.headers.get('content-type') || '').toLowerCase();
 
-    // Try JSON, fallback to text
-    let out;
-    let isJson = false;
-    try {
-      out = JSON.parse(text);
-      isJson = true;
-    } catch (e) {
-      out = text;
-    }
-
-    res.statusCode = resp.status;
+    // If upstream is JSON (or looks like JSON), pass it through.
+    let parsed;
+    let isJson = respCt.includes('application/json');
     if (isJson) {
-      res.setHeader('Content-Type', 'application/json; charset=utf-8');
-      res.end(JSON.stringify(out));
+      try { parsed = JSON.parse(text || '{}'); }
+      catch (e) { isJson = false; }
     } else {
-      res.setHeader('Content-Type', resp.headers.get('content-type') || 'text/plain; charset=utf-8');
-      res.end(out);
+      try { parsed = JSON.parse(text); isJson = true; }
+      catch (e) { /* not json */ }
     }
-  } catch (err) {
-    console.error(err);
-    res.statusCode = 500;
+
+    if (isJson) {
+      res.statusCode = resp.status;
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      res.end(JSON.stringify(parsed));
+      return;
+    }
+
+    // Upstream returned HTML or text. Always return JSON so frontend never crashes on JSON.parse().
+    res.statusCode = 502;
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
-    res.end(JSON.stringify({ success: false, error: 'Proxy error. See Vercel logs.' }));
+    res.end(JSON.stringify({
+      success: false,
+      error: 'Upstream returned non-JSON response.',
+      upstream_status: resp.status,
+      upstream_content_type: resp.headers.get('content-type') || '',
+      snippet: String(text || '').slice(0, 600)
+    }));
+  } catch (err) {
+    const aborted = String(err && err.name || '') === 'AbortError';
+    res.statusCode = aborted ? 504 : 500;
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.end(JSON.stringify({
+      success: false,
+      error: aborted ? 'Proxy timeout while calling Apps Script.' : 'Proxy error. See Vercel logs.',
+      details: String(err && (err.message || err) || '')
+    }));
+  } finally {
+    clearTimeout(t);
   }
 };
