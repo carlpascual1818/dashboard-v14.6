@@ -47,6 +47,11 @@
       font-weight:800;
       letter-spacing:.2px;
     }
+    .brandLink{
+      color:inherit;
+      text-decoration:none;
+    }
+    .brandLink:hover{ opacity:.85; }
     .bolt{
       font-size:18px;
       line-height:1;
@@ -180,9 +185,24 @@
     }
     .cardTop{
       display:flex;
-      align-items:flex-start;
+      align-items:center;
       justify-content:space-between;
       gap:10px;
+    }
+    .cardLead{
+      display:flex;
+      align-items:center;
+      gap:12px;
+    }
+    .cardIcon{
+      width:42px;
+      height:42px;
+      border-radius:12px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background: rgba(37,99,235,.08);
+      font-size:20px;
     }
     .cardTitle{
       font-size:16px;
@@ -243,10 +263,10 @@
 
 <body>
   <header class="topbar">
-    <div class="brand">
+    <a class="brand brandLink" href="/portal.html">
       <span class="bolt">⚡</span>
       <span>COO Dashboard</span>
-    </div>
+    </a>
 
     <div class="right">
       <span id="userPill" class="pill">User</span>
@@ -378,6 +398,15 @@
     function getCategoryName(cat){
       return (cat && (cat.display_name || cat.name || cat.category_name || cat.id)) ? (cat.display_name || cat.name || cat.category_name || cat.id) : 'Category';
     }
+    function getCategoryIcon(cat){
+      if (cat && cat.icon) return String(cat.icon);
+      var cid = String(getCategoryId(cat)).toLowerCase();
+      if (cid === 'team') return '👥';
+      if (cid === 'hr') return '👔';
+      if (cid === 'ops' || cid === 'operations') return '📊';
+      if (cid === 'fin' || cid === 'finance' || cid === 'finances') return '💵';
+      return '📁';
+    }
     function getPageId(page){
       return (page && (page.page_id || page.id)) ? (page.page_id || page.id) : '';
     }
@@ -404,9 +433,7 @@
       container.innerHTML = '';
 
       var cats = (nav && nav.categories) ? nav.categories : [];
-      var pages = (nav && nav.pages) ? nav.pages : [];
-
-      // Home: show categories first, then direct pages if any
+      // Home: show only top-level departments
       if (cats.length){
         var t1 = document.createElement('div');
         t1.className = 'sectionTitle';
@@ -418,6 +445,7 @@
         cats.forEach(function(c){
           grid.appendChild(makeCard({
             title: getCategoryName(c),
+            icon: getCategoryIcon(c),
             desc: c.description || '',
             count: Number.isFinite(c.count) ? c.count : countPagesInCategory(c),
             onClick: function(){
@@ -435,29 +463,7 @@
         container.appendChild(grid);
       }
 
-      if (pages.length){
-        var t2 = document.createElement('div');
-        t2.className = 'sectionTitle';
-        t2.textContent = 'Pages';
-        container.appendChild(t2);
-
-        var grid2 = document.createElement('div');
-        grid2.className = 'grid';
-        pages.forEach(function(p){
-          grid2.appendChild(makeCard({
-            title: getPageName(p),
-            desc: p.description || '',
-            count: p.count,
-            onClick: function(){
-              lastPageId = getPageId(p);
-              openPage(p);
-            }
-          }));
-        });
-        container.appendChild(grid2);
-      }
-
-      if (!cats.length && !pages.length){
+      if (!cats.length){
         var empty = document.createElement('div');
         empty.className = 'empty';
         empty.textContent = 'No pages available for your role.';
@@ -514,19 +520,30 @@
       top.className = 'cardTop';
 
       var left = document.createElement('div');
+      left.className = 'cardLead';
+
+      if (opts.icon){
+        var icon = document.createElement('div');
+        icon.className = 'cardIcon';
+        icon.textContent = opts.icon;
+        left.appendChild(icon);
+      }
+
+      var textWrap = document.createElement('div');
 
       var h = document.createElement('h3');
       h.className = 'cardTitle';
       h.textContent = opts.title || 'Item';
 
-      left.appendChild(h);
+      textWrap.appendChild(h);
 
       if (opts.desc){
         var d = document.createElement('p');
         d.className = 'cardDesc';
         d.textContent = opts.desc;
-        left.appendChild(d);
+        textWrap.appendChild(d);
       }
+      left.appendChild(textWrap);
 
       var meta = document.createElement('div');
       meta.className = 'cardMeta';
