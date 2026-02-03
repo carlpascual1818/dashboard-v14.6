@@ -38,6 +38,11 @@
       align-items:center;
       font-weight: 800;
     }
+    .brandLink{
+      color:inherit;
+      text-decoration:none;
+    }
+    .brandLink:hover{ opacity:.85; }
     .brand .bolt { color: var(--btn); }
     .headerLeft { display:flex; gap:10px; align-items:center; }
     .crumb { color: var(--muted); font-size: 13px; }
@@ -236,7 +241,7 @@
 <body>
   <header>
     <div class="headerLeft">
-      <div class="brand"><span class="bolt">⚡</span><span>COO Dashboard</span></div>
+      <a class="brand brandLink" href="./portal.html"><span class="bolt">⚡</span><span>COO Dashboard</span></a>
       <div id="crumb" class="crumb"></div>
     </div>
     <div class="right">
@@ -337,6 +342,19 @@
       const c = stack.shift();
       if (String(getCategoryId(c)) === String(id)) return c;
       (c.children || []).forEach(ch => stack.push(ch));
+    }
+    return null;
+  }
+
+  function findPageLocation(rootCats, pageId) {
+    if (!pageId) return null;
+    const queue = (rootCats || []).map(cat => ({cat, path: [cat]}));
+    while (queue.length) {
+      const {cat, path} = queue.shift();
+      if ((cat.pages || []).some(p => String(p.page_id) === String(pageId))) {
+        return { section: path[0], dept: cat };
+      }
+      (cat.children || []).forEach(ch => queue.push({cat: ch, path: path.concat([ch])}));
     }
     return null;
   }
@@ -720,9 +738,19 @@
     }
 
     const roots = NAV.categories || [];
-    const sectionCat = findCatById(roots, catId);
+    let sectionCat = findCatById(roots, catId);
+    let resolvedDeptId = deptId;
 
-    renderSidebar(sectionCat, deptId);
+    if (!sectionCat && pageId) {
+      const loc = findPageLocation(roots, pageId);
+      if (loc) {
+        sectionCat = loc.section;
+        resolvedDeptId = getCategoryId(loc.dept);
+        setQuery({ cat_id: getCategoryId(loc.section), dept_id: resolvedDeptId }, true);
+      }
+    }
+
+    renderSidebar(sectionCat, resolvedDeptId);
 
     if (!sectionCat) {
       updateCrumb(null, null, null);
@@ -735,7 +763,7 @@
     }
 
     // If only section selected -> show departments
-    if (!deptId) {
+    if (!resolvedDeptId) {
       updateCrumb(sectionCat, null, null);
       main.innerHTML = renderDepartmentCards(sectionCat);
       main.querySelectorAll('[data-dept]').forEach(el => {
@@ -748,7 +776,7 @@
       return;
     }
 
-    const deptCat = findCatById(sectionCat.children || [], deptId) || findCatById([sectionCat], deptId);
+    const deptCat = findCatById(sectionCat.children || [], resolvedDeptId) || findCatById([sectionCat], resolvedDeptId);
 
     if (!deptCat) {
       updateCrumb(sectionCat, null, null);
@@ -793,7 +821,7 @@
   // Boot
   (function boot() {
     // If user came here without section, send them home
-    if (!qs().get('cat_id')) {
+    if (!qs().get('cat_id') && !qs().get('page_id')) {
       location.href = './portal.html';
       return;
     }
