@@ -1,139 +1,282 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <base target="_top">
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Portal - COO Dashboard</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>COO Dashboard - Home</title>
+  <script src="./config.js"></script>
   <style>
-    body{font-family:Inter,Arial,sans-serif;margin:0;background:#0b1220;color:#e6eefc}
-    header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.08);background:#0b1220;position:sticky;top:0}
-    .brand{font-weight:900}
-    .wrap{display:flex;min-height:calc(100vh - 52px)}
-    .side{width:280px;flex:0 0 280px;border-right:1px solid rgba(255,255,255,.08);padding:12px;box-sizing:border-box}
-    .main{flex:1;padding:16px}
-    .card{background:#111b33;border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:14px;margin-bottom:12px}
-    .cat{padding:10px 10px;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:space-between}
-    .cat:hover{background:rgba(255,255,255,.06)}
-    .pages{margin:6px 0 0 8px;display:none}
-    .cat.open + .pages{display:block}
-    .page{padding:8px 10px;border-radius:10px;cursor:pointer;opacity:.95}
-    .page:hover{background:rgba(255,255,255,.06)}
-    .muted{opacity:.75;font-size:13px}
-    button{background:#1f7aff;border:0;color:#fff;font-weight:800;border-radius:10px;padding:10px 12px;cursor:pointer}
-    .pill{font-size:12px;opacity:.8}
+    :root {
+      --bg1: #f6f8ff;
+      --bg2: #eef6ff;
+      --card: #ffffff;
+      --text: #111827;
+      --muted: #6b7280;
+      --border: rgba(17, 24, 39, 0.10);
+      --shadow: 0 10px 30px rgba(17, 24, 39, 0.08);
+      --btn: #2563eb;
+      --btnText: #ffffff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: var(--text);
+      background: radial-gradient(1200px 600px at 30% 10%, var(--bg2), var(--bg1));
+      min-height: 100vh;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 22px;
+    }
+    .brand {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      font-weight: 800;
+      letter-spacing: 0.2px;
+    }
+    .brand .bolt { font-size: 18px; color: var(--btn); }
+    .right {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .pill {
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.75);
+      color: var(--muted);
+    }
+    .btn {
+      border: 0;
+      background: var(--btn);
+      color: var(--btnText);
+      padding: 10px 14px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+    .btn.secondary {
+      background: rgba(17,24,39,0.06);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 8px 22px 28px;
+    }
+    .hero {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      padding: 22px;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: rgba(255,255,255,0.70);
+      box-shadow: var(--shadow);
+    }
+    .hero h1 {
+      margin: 0;
+      font-size: 36px;
+      line-height: 1.05;
+    }
+    .hero p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .grid {
+      margin-top: 18px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+    .card {
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: var(--card);
+      box-shadow: var(--shadow);
+      padding: 18px;
+      cursor: pointer;
+      transition: transform 120ms ease, box-shadow 120ms ease;
+      display: grid;
+      grid-template-columns: 54px 1fr;
+      gap: 14px;
+      align-items: start;
+      min-height: 110px;
+    }
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 40px rgba(17, 24, 39, 0.12);
+    }
+    .iconBox {
+      width: 54px;
+      height: 54px;
+      border-radius: 14px;
+      background: rgba(37, 99, 235, 0.10);
+      display: grid;
+      place-items: center;
+      font-size: 22px;
+      color: var(--btn);
+    }
+    .card h3 { margin: 0; font-size: 18px; }
+    .card p { margin: 6px 0 0; color: var(--muted); font-size: 13px; }
+    .metaRow { margin-top: 10px; display:flex; gap:10px; flex-wrap: wrap; }
+    .mini {
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(17,24,39,0.03);
+      color: var(--muted);
+    }
+    .loading {
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    @media (max-width: 820px) {
+      .grid { grid-template-columns: 1fr; }
+      .hero h1 { font-size: 28px; }
+    }
   </style>
 </head>
 <body>
   <header>
-    <div>
-      <div class="brand">COO Dashboard</div>
-      <div class="muted" id="who"></div>
-    </div>
-    <div style="display:flex;gap:10px;align-items:center">
-      <div class="pill" id="role"></div>
-      <button id="logoutBtn">Logout</button>
+    <div class="brand"><span class="bolt">⚡</span><span>COO Dashboard</span></div>
+    <div class="right">
+      <span id="userPill" class="pill">Loading...</span>
+      <button class="btn secondary" id="logoutBtn">Logout</button>
     </div>
   </header>
 
   <div class="wrap">
-    <aside class="side">
-      <div class="card">
-        <div class="muted">Menu</div>
-        <div id="nav"></div>
-      </div>
-    </aside>
+    <div class="hero">
+      <h1 id="welcomeTitle">Welcome back</h1>
+      <p>Choose where you would like to go.</p>
+    </div>
 
-    <main class="main">
-      <div class="card">
-        <div style="font-weight:800">Pick a page</div>
-        <div class="muted">Your access is applied automatically from config.</div>
-      </div>
-      <div id="hint" class="muted"></div>
-    </main>
+    <div id="grid" class="grid"></div>
+    <div id="loading" class="loading">Loading your access...</div>
   </div>
 
-<script src="config.js"></script>
 <script>
+  const token = localStorage.getItem('token');
+  const user = safeJson(localStorage.getItem('user')) || {};
+  const userName = user.name || user.email || 'User';
 
-  function getToken(){ return localStorage.getItem('token') || ''; }
-  function getUser(){
-    try{ return JSON.parse(localStorage.getItem('user')||'{}'); }catch(e){ return {}; }
-  }
-  function esc(s){ return String(s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+  if (!token) location.href = './login.html';
 
-  async function api(action, payload){
+  document.getElementById('welcomeTitle').textContent = 'Welcome back, ' + (user.name || 'Demo') + '!';
+
+  document.getElementById('userPill').textContent = (user.name ? user.name : (user.email || '')) + (user.role ? (' | ' + user.role) : '');
+
+  document.getElementById('logoutBtn').addEventListener('click', () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    sessionStorage.removeItem('nav_cache');
+    sessionStorage.removeItem('nav_cache_ts');
+    location.href = './login.html';
+  });
+
+  function safeJson(v){ try { return JSON.parse(v || ''); } catch(e){ return null; } }
+
+  async function api(action, payload = {}) {
     const r = await fetch(API_URL, {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify(Object.assign({action, token:getToken()}, payload||{}))
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, token, ...payload })
     });
     return await r.json();
   }
 
-  function renderNav(nav){
-    const root=document.getElementById('nav');
-    root.innerHTML='';
-    (nav.categories||[]).forEach(cat=>{
-      const catDiv=document.createElement('div');
-      catDiv.className='cat';
-      catDiv.innerHTML = `<div>${esc(cat.icon||'')} ${esc(cat.display_name||cat.category_id)}</div><div class="muted">›</div>`;
-      const pages=document.createElement('div');
-      pages.className='pages';
+  function setNavCache(nav) {
+    try {
+      sessionStorage.setItem('nav_cache', JSON.stringify(nav));
+      sessionStorage.setItem('nav_cache_ts', String(Date.now()));
+    } catch(e){}
+  }
 
-      (cat.pages||[]).forEach(p=>{
-        const pDiv=document.createElement('div');
-        pDiv.className='page';
-        pDiv.textContent = p.display_name || p.page_id;
-        pDiv.addEventListener('click', ()=>{
-          if (p.page_id === 'hr_invite' || p.page_id === 'admin_invite_user') {
-        location.href = 'invite_user.html';
-      } else {
-        location.href = 'dashboard.html?page_id=' + encodeURIComponent(p.page_id);
-      }
-        });
-        pages.appendChild(pDiv);
+  function getNavCache() {
+    try {
+      const raw = sessionStorage.getItem('nav_cache');
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch(e) { return null; }
+  }
+
+  function topIcon(id) {
+    const key = String(id || '').toLowerCase();
+    if (key.includes('team')) return '👥';
+    if (key.includes('ops')) return '⚙️';
+    if (key.includes('fin')) return '📈';
+    if (key.includes('hr')) return '📋';
+    return '📌';
+  }
+
+  function countPages(cat) {
+    let n = (cat.pages || []).length;
+    (cat.children || []).forEach(ch => { n += countPages(ch); });
+    return n;
+  }
+
+  function renderCards(nav) {
+    const roots = (nav.categories || []).filter(c => !c.parent_category_id);
+    const grid = document.getElementById('grid');
+    grid.innerHTML = '';
+
+    roots.forEach(cat => {
+      const totalPages = countPages(cat);
+      const totalDepts = (cat.children || []).length;
+
+      const el = document.createElement('div');
+      el.className = 'card';
+      el.innerHTML = `
+        <div class="iconBox">${topIcon(cat.category_id)}</div>
+        <div>
+          <h3>${escapeHtml(cat.display_name || cat.category_id)}</h3>
+          <p>${totalDepts ? (totalDepts + ' departments') : 'Open section'}</p>
+          <div class="metaRow">
+            <span class="mini">${totalPages} pages</span>
+          </div>
+        </div>
+      `;
+      el.addEventListener('click', () => {
+        sessionStorage.setItem('last_url', location.href);
+        location.href = './dashboard.html?cat_id=' + encodeURIComponent(cat.category_id);
       });
-
-      catDiv.addEventListener('click', ()=>{
-        catDiv.classList.toggle('open');
-      });
-
-      root.appendChild(catDiv);
-      root.appendChild(pages);
+      grid.appendChild(el);
     });
   }
 
-  async function boot(){
-    const u=getUser();
-    document.getElementById('who').textContent = u.name ? (u.name + ' (' + (u.department||'') + ')') : (u.email || '');
-    document.getElementById('role').textContent = u.role || '';
-
-    const token=getToken();
-    if(!token){
-      location.href = 'index.html';
-      return;
-    }
-    const res = await api('nav', {});
-    if(!res.success){
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      location.href = 'index.html';
-      return;
-    }
-    renderNav(res.nav || {});
-    document.getElementById('hint').textContent = 'Loaded ' + ((res.nav && res.nav.categories) ? res.nav.categories.length : 0) + ' sections';
+  function escapeHtml(s) {
+    return String(s || '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
   }
 
-  document.getElementById('logoutBtn').addEventListener('click', async ()=>{
-    try{ await api('logout', {}); }catch(e){}
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    location.href = 'index.html';
-  });
+  (async function boot() {
+    const cached = getNavCache();
+    if (cached && cached.categories) {
+      document.getElementById('loading').style.display = 'none';
+      renderCards(cached);
+      return;
+    }
 
-  boot();
+    const res = await api('nav');
+    if (!res || !res.success) {
+      document.getElementById('loading').textContent = (res && res.error) ? res.error : 'Failed to load.';
+      return;
+    }
+
+    setNavCache(res.nav);
+    document.getElementById('loading').style.display = 'none';
+    renderCards(res.nav);
+  })();
 </script>
 </body>
 </html>
