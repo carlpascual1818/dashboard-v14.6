@@ -762,17 +762,30 @@
       return;
     }
 
-    // If only section selected -> show departments
+    // If only section selected -> show departments or pages when no children exist
     if (!resolvedDeptId) {
-      updateCrumb(sectionCat, null, null);
-      main.innerHTML = renderDepartmentCards(sectionCat);
-      main.querySelectorAll('[data-dept]').forEach(el => {
-        el.addEventListener('click', () => {
-          const id = el.getAttribute('data-dept');
-          setQuery({ dept_id: id, page_id: null }, false);
-          render();
+      if (!sectionCat.children || sectionCat.children.length === 0) {
+        updateCrumb(sectionCat, null, null);
+        main.innerHTML = renderDeptOrBranchCards(sectionCat);
+
+        main.querySelectorAll('[data-page]').forEach(el => {
+          el.addEventListener('click', () => {
+            const id = el.getAttribute('data-page');
+            setQuery({ page_id: id }, false);
+            render();
+          });
         });
-      });
+      } else {
+        updateCrumb(sectionCat, null, null);
+        main.innerHTML = renderDepartmentCards(sectionCat);
+        main.querySelectorAll('[data-dept]').forEach(el => {
+          el.addEventListener('click', () => {
+            const id = el.getAttribute('data-dept');
+            setQuery({ dept_id: id, page_id: null }, false);
+            render();
+          });
+        });
+      }
       return;
     }
 
